@@ -1,0 +1,70 @@
+Proca Andreea-Dana
+Grupa 332CC
+Paradigma Map-Reduce
+
+    In main:
+    Primesc parametrii apelului si il retin in variabile M = nr. thread-uri Map,
+R = nr. thread-uri Reduce si S = numele fisierului din care citesc, declar
+vectorul de thread-uri, cel de thread_id, N = nr. de elemente din fisier,
+initializez mutecsii si bariera, declar si initializez listele de liste Map.
+    Citesc din fisierul principal cate un nume de fisier, il deschid, calculez
+dimensiunea lui folosing f.seekg() si fp.tellg(), dupa care salvez intr-un vector
+de perechi numele fisierului si dimensiunea sa. Apoi, sortez vectorul in ordine
+descrescatoare a dimensiunii, dupa care pun continutul vectorului sortat intr-o
+coada pentru a fi mai usor de utilizat de thread-urile Map. Calculez toate
+numerele la toate puterile pana la R+1 apeland functia calcPuteri si le retin
+intr-un unordered_set pentru a avea cautarea de elemente mai eficienta.
+    Am creat toate threadurile intr-o bucla for. Le-am dat ca parametru functia
+thread function si adresa structurii help a thread-ului din vectorul de 
+structuri. Structura help contine id-ul threadului, numarul de threaduri Map(M)
+si Reduce(R), lista listelor rezultate dupa utilizarea functiei map (la inceput
+goale) ca pointeri pentru ca toate modificarile aduse in alte functii sa fie
+salvate si vazute in alte functii si coada in care am pus perechi de nume
+fisiere din care trebuie citite listele si dimensiune, ordonate descrescator
+dupa dimensiune si vectorul de puteri. Intr-o bucla for am dat join tuturor
+thread-urilor.
+    La final, am apelat functiile de destroy pentru mutex si bariera.
+
+    Functia thread_function apeleaza functia map sau reduce in functie de id-ul
+thread-ului curent: daca este mai mic decat M, atunci este un thread Map, daca
+nu, este un thread Reduce. 
+    -> Daca este Map, cat timp coada este goala, blochez 
+urmatoarele operatii cu un mutex pentru ca doar un thread sa poate face 
+modificarile la un moment dat: verifica daca coada nu e goala, daca nu e,
+atunci vad care este primul element din coada, il retin intr-o variabila string
+si il scot din coada.
+    -> Deblochez mutex-ul si apelez functia map pentru acea lista
+    -> Dupa aceea, am folosit o bariera pentru a sincroniza toate thread-urile:
+atunci cand toate thread-urile Map au terminat de procesat, thread-urile Reduce
+pot sa porneasca si sa apeleze functia myReduce
+    -> Thread-urile se opresc cand ajung la finalul functiei
+
+    Functia myMap citeste lista de numere din fisierul dat ca parametru si pentru
+fiecare apeleaza functia check_pow pentru a gasi daca numarul dat este patrat
+perfect, cub perfect samd.
+
+    Functia myReduce adauga la lista corespunzatoare id-ului thread-ului Reduce
+curent (primul thread Reduce are lista Reduce cu index 0 in lista de liste
+Reduced) listele corespunzatoare din fiecare lista Map(thread-ul Reduce cu id
+ID va lua elementele din listele cu index ID - M ). Dupa aceea, sortez lista
+Reduced rezultata in ordine crescatoare a elementelor si elimin elementele
+care nu sunt unice. Acum, lungimea listei va fi numarul de elementeunice; pun
+lungimea listei in fisierul out corespunzator: concatenez stringul "out" cu 
+puterea (= thread id - M + 2) si cu "txt".
+
+    Functia check_pow primeste un element si structura help a thread-ului care
+a intrat in functie; verific daca elementul este 1, daca da, atunci este adaugat
+la toate listele de puteri ale acelui thread Map, daca nu, pentru fiecare putere
+pana la R+1, se cauta elementul in lista de puteri, daca este gasit, este adaugat
+la lista corespunzatoare puterii din lista de liste a thread-ului Map: daca
+exista puterea 2, atunci numarul dat va fi adaugat la prima lista din lista Map,
+adica cea de la indexul putere-2 = 0.
+
+    Functia cmp compara doua perechi <string, int> dupa a doua valoare si o 
+returneaza pe cea mai mare; este folosita la sortatea descrescatoare a vectorului
+de perechi <nume fisier, dimensiune>.
+
+    Functia calcPuteri calculeaza toate numerele la puterile de la 2 la R+1 cu
+conditia ca numarul rezultat sa fie mai mic decat INT_MAX pentru a nu depasi
+limita intregilor si a nu ajunge la overflow. Este creata cate o lista(set) de
+valori pentru fiecare putere; listele sunt retinute intr-o lista(vector) de puteri.
